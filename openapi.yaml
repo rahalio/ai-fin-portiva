@@ -1,0 +1,790 @@
+openapi: 3.0.3
+info:
+  title: Portiva
+  version: 0.1.0
+  description: Executive AI opportunity portfolio and operating-model decision system for financial institutions.
+  x-product-slug: ai-fin-portiva
+  x-source: ai-in-financial/Deloitte_WEF_FS_AI_Summary_2018/
+servers:
+- url: https://api.example.com
+tags:
+- name: Initiatives
+  description: AI initiative inventory
+- name: Scorecards
+  description: Strategic scorecards
+- name: Gates
+  description: Stage gates
+- name: Decisions
+  description: Fund kill scale decisions
+- name: Dependencies
+  description: Vendor dependencies
+- name: PolicyWatch
+  description: Policy watchlist
+- name: BoardPacks
+  description: Board packs
+paths:
+  /v1/initiatives:
+    get:
+      operationId: listInitiatives
+      tags:
+      - Initiatives
+      security: &id001
+      - BearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopeInitiative'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createInitiative
+      tags:
+      - Initiatives
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiativeCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeInitiative'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/initiatives/{initiativeId}:
+    parameters:
+    - $ref: '#/components/parameters/InitiativeId'
+    get:
+      operationId: getInitiative
+      tags:
+      - Initiatives
+      security: *id001
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeInitiative'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/scorecards:
+    get:
+      operationId: listScorecards
+      tags:
+      - Scorecards
+      security: *id001
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopeScorecard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      operationId: upsertScorecard
+      tags:
+      - Scorecards
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScorecardUpsert'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeScorecard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/gates:
+    get:
+      operationId: listStageGates
+      tags:
+      - Gates
+      security: *id001
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopeStageGate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createStageGate
+      tags:
+      - Gates
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StageGateCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeStageGate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/decisions:
+    get:
+      operationId: listFundingDecisions
+      tags:
+      - Decisions
+      security: *id001
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopeFundingDecision'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createFundingDecision
+      tags:
+      - Decisions
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FundingDecisionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeFundingDecision'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/dependencies:
+    get:
+      operationId: listVendorDependencies
+      tags:
+      - Dependencies
+      security: *id001
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopeVendorDependency'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/policy-watch:
+    get:
+      operationId: listPolicyWatchItems
+      tags:
+      - PolicyWatch
+      security: *id001
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListEnvelopePolicyWatchItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/board-packs:
+    post:
+      operationId: createBoardPack
+      tags:
+      - BoardPacks
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - period
+              properties:
+                period:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelopeBoardPack'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    InitiativeId:
+      name: initiativeId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    ResponseMeta:
+      type: object
+      required:
+      - requestId
+      - timestamp
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required:
+      - type
+      - title
+      - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    Initiative:
+      type: object
+      required:
+      - id
+      - name
+      - arcs
+      - stage
+      - status
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        arcs:
+          type: array
+          items:
+            type: string
+            enum:
+            - value_creation
+            - operating_model
+            - competition
+            - public_policy
+        owner:
+          type: string
+        stage:
+          type: string
+          enum:
+          - explore
+          - pilot
+          - scale
+          - coe_service
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - killed
+          - scaled
+    InitiativeCreate:
+      type: object
+      required:
+      - name
+      - arcs
+      - owner
+      properties:
+        name:
+          type: string
+        arcs:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+        outcomeMetric:
+          type: string
+    Scorecard:
+      type: object
+      required:
+      - id
+      - initiativeId
+      properties:
+        id:
+          type: string
+        initiativeId:
+          type: string
+        moatScore:
+          type: number
+        talentScore:
+          type: number
+        vendorRiskScore:
+          type: number
+        policyRiskScore:
+          type: number
+        competitivePosture:
+          type: string
+          enum:
+          - scale
+          - niche
+          - mid_tier_risk
+    ScorecardUpsert:
+      type: object
+      required:
+      - initiativeId
+      - moatScore
+      - vendorRiskScore
+      - policyRiskScore
+      properties:
+        initiativeId:
+          type: string
+        moatScore:
+          type: number
+        talentScore:
+          type: number
+        vendorRiskScore:
+          type: number
+        policyRiskScore:
+          type: number
+        competitivePosture:
+          type: string
+          enum:
+          - scale
+          - niche
+          - mid_tier_risk
+        notes:
+          type: string
+    StageGate:
+      type: object
+      required:
+      - id
+      - initiativeId
+      - status
+      properties:
+        id:
+          type: string
+        initiativeId:
+          type: string
+        fromStage:
+          type: string
+        toStage:
+          type: string
+        killMetrics:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+          - open
+          - passed
+          - failed
+    StageGateCreate:
+      type: object
+      required:
+      - initiativeId
+      - fromStage
+      - toStage
+      - killMetrics
+      properties:
+        initiativeId:
+          type: string
+        fromStage:
+          type: string
+        toStage:
+          type: string
+        killMetrics:
+          type: array
+          items:
+            type: string
+    FundingDecision:
+      type: object
+      required:
+      - id
+      - initiativeId
+      - decision
+      properties:
+        id:
+          type: string
+        initiativeId:
+          type: string
+        decision:
+          type: string
+          enum:
+          - fund
+          - kill
+          - scale
+          - pause
+        rationale:
+          type: string
+        amount:
+          type: number
+        decidedBy:
+          type: string
+    FundingDecisionCreate:
+      type: object
+      required:
+      - initiativeId
+      - decision
+      - rationale
+      properties:
+        initiativeId:
+          type: string
+        decision:
+          type: string
+          enum:
+          - fund
+          - kill
+          - scale
+          - pause
+        rationale:
+          type: string
+        amount:
+          type: number
+    VendorDependency:
+      type: object
+      required:
+      - id
+      - initiativeId
+      - vendorName
+      - criticality
+      properties:
+        id:
+          type: string
+        initiativeId:
+          type: string
+        vendorName:
+          type: string
+        criticality:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+    PolicyWatchItem:
+      type: object
+      required:
+      - id
+      - topic
+      - blocksScale
+      - status
+      properties:
+        id:
+          type: string
+        topic:
+          type: string
+        blocksScale:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - open
+          - waived
+          - resolved
+    BoardPack:
+      type: object
+      required:
+      - id
+      - period
+      properties:
+        id:
+          type: string
+        period:
+          type: string
+        downloadUrl:
+          type: string
+          format: uri
+    DataEnvelopeInitiative:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/Initiative'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeInitiative:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Initiative'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopeScorecard:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/Scorecard'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeScorecard:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Scorecard'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopeStageGate:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/StageGate'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeStageGate:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/StageGate'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopeFundingDecision:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/FundingDecision'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeFundingDecision:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FundingDecision'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopeVendorDependency:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/VendorDependency'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeVendorDependency:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/VendorDependency'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopePolicyWatchItem:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyWatchItem'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopePolicyWatchItem:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PolicyWatchItem'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    DataEnvelopeBoardPack:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          $ref: '#/components/schemas/BoardPack'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+    ListEnvelopeBoardPack:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: object
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BoardPack'
+            nextCursor:
+              type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
