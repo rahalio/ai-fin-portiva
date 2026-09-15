@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: Portiva Board Packs API
+  version: 0.1.0
+  description: |
+    Board/exco packs combining spend, expected value, risk, and stage distribution (BR-8).
+  x-domain: brd
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: BoardPacks
+    description: Unified board and exco packs
+x-codegen:
+  preserveOnClean:
+    - extensions
+  api-server:
+    extensions:
+      enabled: true
+x-integration-events:
+  - type: board_pack.published
+    domain: board-pack
+    aggregateType: BoardPack
+    description: Board pack published for exco/board consumption
+    defaultDeliveryMode: sync
+paths:
+  /v1/board-packs:
+    get:
+      operationId: listBoardPacks
+      tags: [BoardPacks]
+      summary: List board packs
+      x-repository: BoardPack
+      x-dynamodb:
+        entityType: BOARD_PACK
+        pkPatternTemplate: "BRD#${boardPackId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [period, status]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: period
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackStatus
+      responses:
+        '200':
+          description: Board packs
+          content:
+            application/json:
+              schema:
+                $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createBoardPack
+      tags: [BoardPacks]
+      summary: Create draft board pack
+      x-repository: BoardPack
+      x-dynamodb:
+        entityType: BOARD_PACK
+        pkPatternTemplate: "BRD#${boardPackId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackCreateRequest
+      responses:
+        '201':
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/board-packs/{boardPackId}:
+    get:
+      operationId: getBoardPack
+      tags: [BoardPacks]
+      summary: Get board pack
+      x-repository: BoardPack
+      x-dynamodb:
+        entityType: BOARD_PACK
+        pkPatternTemplate: "BRD#${boardPackId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: boardPackId
+          in: path
+          required: true
+          schema:
+            $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackId
+      responses:
+        '200':
+          description: Board pack
+          content:
+            application/json:
+              schema:
+                $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/board-packs/{boardPackId}/publish:
+    post:
+      operationId: publishBoardPack
+      tags: [BoardPacks]
+      summary: Publish board pack
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - board_pack.published
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: boardPackId
+          in: path
+          required: true
+          schema:
+            $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackId
+      responses:
+        '200':
+          description: Published (downloadUrl populated)
+          content:
+            application/json:
+              schema:
+                $ref: ./board-pack.schemas.yaml#/components/schemas/BoardPackResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

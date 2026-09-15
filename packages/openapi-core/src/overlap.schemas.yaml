@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: Portiva overlap schemas
+  version: 0.1.0
+  description: |
+    Overlap clusters for initiatives chasing the same customer outcome (BR-11).
+paths: {}
+components:
+  schemas:
+    OverlapClusterId:
+      type: string
+      pattern: '^ovl_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ovl_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    OverlapStatus:
+      type: string
+      enum:
+        - open
+        - resolved
+
+    OverlapCluster:
+      type: object
+      required:
+        - overlapClusterId
+        - sharedOutcomeLabel
+        - memberInitiativeIds
+        - capitalAtRisk
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        overlapClusterId:
+          $ref: '#/components/schemas/OverlapClusterId'
+        sharedOutcomeLabel:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Shared customer / P&L outcome being double-counted.
+        memberInitiativeIds:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/InitiativeId'
+        capitalAtRisk:
+          type: number
+          minimum: 0
+          description: Aggregate capital at risk from overlapping pilots.
+        status:
+          $ref: '#/components/schemas/OverlapStatus'
+        resolutionNotes:
+          type: string
+          maxLength: 4000
+        resolvedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OverlapMergeRequest:
+      type: object
+      required:
+        - survivingInitiativeId
+      properties:
+        survivingInitiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        notes:
+          type: string
+          maxLength: 4000
+
+    OverlapKillMemberRequest:
+      type: object
+      required:
+        - initiativeId
+      properties:
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        notes:
+          type: string
+          maxLength: 4000
+
+    OverlapKeepDifferentiatedRequest:
+      type: object
+      required:
+        - differentiationNotes
+      properties:
+        differentiationNotes:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Evidence that members pursue differentiated outcomes.
+
+    OverlapClusterResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/OverlapCluster'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    OverlapClusterListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverlapCluster'
+        nextCursor:
+          type: string
+
+    OverlapClusterListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/OverlapClusterListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

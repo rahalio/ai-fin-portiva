@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: Portiva decision schemas
+  version: 0.1.0
+  description: |
+    Immutable funding decision ledger (BR-10). No update or delete.
+paths: {}
+components:
+  schemas:
+    DecisionId:
+      type: string
+      pattern: '^dec_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: dec_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    FundingDecisionType:
+      type: string
+      enum:
+        - fund
+        - kill
+        - scale
+        - pause
+
+    FundingDecision:
+      type: object
+      description: Immutable fund/kill/scale/pause record with rationale and dissent.
+      required:
+        - decisionId
+        - initiativeId
+        - decision
+        - rationale
+        - decidedByUserId
+        - lockedAt
+        - createdAt
+      properties:
+        decisionId:
+          $ref: '#/components/schemas/DecisionId'
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        decision:
+          $ref: '#/components/schemas/FundingDecisionType'
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 8000
+        amount:
+          type: number
+          minimum: 0
+          description: Funding amount when decision is fund or scale (institutional currency units).
+        currency:
+          $ref: ./common/primitives.yaml#/components/schemas/Currency
+        decidedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        dissentNotes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2000
+          description: Dissenting notes captured at lock time (BR-10).
+        talentReskillNotes:
+          type: string
+          maxLength: 4000
+          description: Talent/reskilling needs attached to scale decisions (BR-5).
+        lockedAt:
+          type: string
+          format: date-time
+          description: Immutable lock timestamp; no further mutation allowed.
+        createdAt:
+          type: string
+          format: date-time
+
+    FundingDecisionCreateRequest:
+      type: object
+      required:
+        - initiativeId
+        - decision
+        - rationale
+        - decidedByUserId
+      properties:
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        decision:
+          $ref: '#/components/schemas/FundingDecisionType'
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 8000
+        amount:
+          type: number
+          minimum: 0
+        currency:
+          $ref: ./common/primitives.yaml#/components/schemas/Currency
+        decidedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        dissentNotes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2000
+        talentReskillNotes:
+          type: string
+          maxLength: 4000
+
+    FundingDecisionResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/FundingDecision'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    FundingDecisionListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingDecision'
+        nextCursor:
+          type: string
+
+    FundingDecisionListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/FundingDecisionListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

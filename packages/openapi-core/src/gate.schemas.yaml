@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: Portiva gate schemas
+  version: 0.1.0
+  description: |
+    Stage-gate funding workflows with pre-declared kill metrics (BR-3).
+    Missed kills require executive exception.
+paths: {}
+components:
+  schemas:
+    GateId:
+      type: string
+      pattern: '^gat_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: gat_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeStage:
+      type: string
+      enum:
+        - explore
+        - pilot
+        - scale
+        - coe_service
+
+    GateStatus:
+      type: string
+      enum:
+        - open
+        - passed
+        - failed
+        - paused
+
+    StageGate:
+      type: object
+      description: Stage gate with mandatory kill metrics before advancing stage.
+      required:
+        - gateId
+        - initiativeId
+        - fromStage
+        - toStage
+        - killMetrics
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        gateId:
+          $ref: '#/components/schemas/GateId'
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        fromStage:
+          $ref: '#/components/schemas/InitiativeStage'
+        toStage:
+          $ref: '#/components/schemas/InitiativeStage'
+        killMetrics:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+          description: Pre-declared kill criteria (BR-3).
+        status:
+          $ref: '#/components/schemas/GateStatus'
+        exceptionRationale:
+          type: string
+          maxLength: 4000
+          description: Required when resolving via executive exception after missed kill.
+        resolvedAt:
+          type: string
+          format: date-time
+        resolvedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StageGateCreateRequest:
+      type: object
+      required:
+        - initiativeId
+        - fromStage
+        - toStage
+        - killMetrics
+      properties:
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        fromStage:
+          $ref: '#/components/schemas/InitiativeStage'
+        toStage:
+          $ref: '#/components/schemas/InitiativeStage'
+        killMetrics:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+
+    GateExceptionRequest:
+      type: object
+      required:
+        - rationale
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Executive exception rationale for missed kill metrics (BR-3).
+        approvedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+
+    GatePauseRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 2000
+
+    GateKillRequest:
+      type: object
+      properties:
+        killMetricHit:
+          type: array
+          items:
+            type: string
+          description: Which kill metrics were triggered.
+        notes:
+          type: string
+          maxLength: 2000
+
+    GatePassRequest:
+      type: object
+      properties:
+        evidenceNotes:
+          type: string
+          maxLength: 2000
+
+    StageGateResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/StageGate'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    StageGateListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageGate'
+        nextCursor:
+          type: string
+
+    StageGateListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/StageGateListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

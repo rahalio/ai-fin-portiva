@@ -1,0 +1,232 @@
+openapi: 3.1.0
+info:
+  title: Portiva Overlap API
+  version: 0.1.0
+  description: |
+    Overlap clusters prevent double-counting pilots that chase the same customer
+    outcome (BR-11). Resolution actions are merge, kill-member, or keep-differentiated.
+  x-domain: ovl
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Overlaps
+    description: Overlap clusters and resolution actions
+x-codegen:
+  preserveOnClean:
+    - extensions
+  api-server:
+    extensions:
+      enabled: true
+x-integration-events:
+  - type: overlap.resolved
+    domain: overlap
+    aggregateType: OverlapCluster
+    description: Overlap cluster resolved via merge, kill-member, or keep-differentiated
+    defaultDeliveryMode: sync
+paths:
+  /v1/overlaps:
+    get:
+      operationId: listOverlapClusters
+      tags: [Overlaps]
+      summary: List overlap clusters
+      x-repository: OverlapCluster
+      x-dynamodb:
+        entityType: OVERLAP_CLUSTER
+        pkPatternTemplate: "OVL#${overlapClusterId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [status]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: status
+          in: query
+          schema:
+            $ref: ./overlap.schemas.yaml#/components/schemas/OverlapStatus
+      responses:
+        '200':
+          description: Overlap clusters
+          content:
+            application/json:
+              schema:
+                $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/overlaps/{overlapClusterId}:
+    get:
+      operationId: getOverlapCluster
+      tags: [Overlaps]
+      summary: Get overlap cluster
+      x-repository: OverlapCluster
+      x-dynamodb:
+        entityType: OVERLAP_CLUSTER
+        pkPatternTemplate: "OVL#${overlapClusterId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: overlapClusterId
+          in: path
+          required: true
+          schema:
+            $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterId
+      responses:
+        '200':
+          description: Overlap cluster
+          content:
+            application/json:
+              schema:
+                $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/overlaps/{overlapClusterId}/merge:
+    post:
+      operationId: mergeOverlapCluster
+      tags: [Overlaps]
+      summary: Merge overlapping initiatives into one survivor
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - overlap.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: overlapClusterId
+          in: path
+          required: true
+          schema:
+            $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./overlap.schemas.yaml#/components/schemas/OverlapMergeRequest
+      responses:
+        '200':
+          description: Cluster resolved by merge
+          content:
+            application/json:
+              schema:
+                $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/overlaps/{overlapClusterId}/kill-member:
+    post:
+      operationId: killOverlapMember
+      tags: [Overlaps]
+      summary: Kill a member initiative in the cluster
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - overlap.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: overlapClusterId
+          in: path
+          required: true
+          schema:
+            $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./overlap.schemas.yaml#/components/schemas/OverlapKillMemberRequest
+      responses:
+        '200':
+          description: Member killed; cluster may remain open if others remain
+          content:
+            application/json:
+              schema:
+                $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/overlaps/{overlapClusterId}/keep-differentiated:
+    post:
+      operationId: keepOverlapDifferentiated
+      tags: [Overlaps]
+      summary: Keep members as differentiated outcomes
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - overlap.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: overlapClusterId
+          in: path
+          required: true
+          schema:
+            $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./overlap.schemas.yaml#/components/schemas/OverlapKeepDifferentiatedRequest
+      responses:
+        '200':
+          description: Cluster resolved as differentiated
+          content:
+            application/json:
+              schema:
+                $ref: ./overlap.schemas.yaml#/components/schemas/OverlapClusterResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

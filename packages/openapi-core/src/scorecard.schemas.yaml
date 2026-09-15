@@ -1,0 +1,191 @@
+openapi: 3.1.0
+info:
+  title: Portiva scorecard schemas
+  version: 0.1.0
+  description: |
+    Strategic fitness scorecards (BR-2, BR-4, BR-5, BR-7). Moat declaration of
+    "none" requires a niche strategy label.
+paths: {}
+components:
+  schemas:
+    ScorecardId:
+      type: string
+      pattern: '^scr_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Prefixed scorecard identifier.
+      example: scr_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    CompetitivePosture:
+      type: string
+      description: Explicit competitive posture (BR-7). mid_tier_risk warns against copying scale plays without data scale.
+      enum:
+        - scale
+        - niche
+        - mid_tier_risk
+
+    MoatDeclaration:
+      type: string
+      description: Data-moat assumption (BR-2).
+      enum:
+        - none
+        - unique_data
+        - virtuous_cycle
+
+    Scorecard:
+      type: object
+      description: Strategic fitness scores for an initiative.
+      required:
+        - scorecardId
+        - initiativeId
+        - moatScore
+        - talentScore
+        - vendorRiskScore
+        - policyRiskScore
+        - competitivePosture
+        - moatDeclaration
+        - midTierWarning
+        - createdAt
+        - updatedAt
+      properties:
+        scorecardId:
+          $ref: '#/components/schemas/ScorecardId'
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        moatScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        talentScore:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Talent / reskilling readiness (BR-5).
+        vendorRiskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Vendor / big-tech dependency risk (BR-4).
+        policyRiskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        competitivePosture:
+          $ref: '#/components/schemas/CompetitivePosture'
+        moatDeclaration:
+          $ref: '#/components/schemas/MoatDeclaration'
+        nicheLabel:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Required when moatDeclaration is none (BR-2).
+        midTierWarning:
+          type: boolean
+          description: True when posture is mid_tier_risk or scale plays lack data moat (BR-7).
+        notes:
+          type: string
+          maxLength: 4000
+        evidenceUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 20
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ScorecardUpsertRequest:
+      type: object
+      required:
+        - initiativeId
+        - moatScore
+        - talentScore
+        - vendorRiskScore
+        - policyRiskScore
+        - competitivePosture
+        - moatDeclaration
+      properties:
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        moatScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        talentScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        vendorRiskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        policyRiskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        competitivePosture:
+          $ref: '#/components/schemas/CompetitivePosture'
+        moatDeclaration:
+          $ref: '#/components/schemas/MoatDeclaration'
+        nicheLabel:
+          type: string
+          minLength: 1
+          maxLength: 200
+        midTierWarning:
+          type: boolean
+        notes:
+          type: string
+          maxLength: 4000
+        evidenceUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 20
+      allOf:
+        - if:
+            properties:
+              moatDeclaration:
+                const: none
+            required: [moatDeclaration]
+          then:
+            required: [nicheLabel]
+
+    ScorecardResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Scorecard'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ScorecardListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Scorecard'
+        nextCursor:
+          type: string
+
+    ScorecardListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/ScorecardListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

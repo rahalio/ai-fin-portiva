@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: Portiva Decisions API
+  version: 0.1.0
+  description: |
+    Immutable funding decision ledger — fund, kill, scale, pause with rationale and
+    dissent notes (BR-10). No update or delete endpoints.
+  x-domain: dec
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Decisions
+    description: Immutable funding decision ledger
+x-integration-events:
+  - type: decision.recorded
+    domain: decision
+    aggregateType: FundingDecision
+    description: Funding decision locked into the immutable ledger
+    defaultDeliveryMode: sync
+paths:
+  /v1/decisions:
+    get:
+      operationId: listFundingDecisions
+      tags: [Decisions]
+      summary: List funding decisions
+      x-repository: FundingDecision
+      x-dynamodb:
+        entityType: FUNDING_DECISION
+        pkPatternTemplate: "DEC#${decisionId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: lockedAt
+        softDeleteEnabled: false
+        filterFields: [initiativeId, decision, decidedByUserId]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: initiativeId
+          in: query
+          schema:
+            $ref: ./decision.schemas.yaml#/components/schemas/InitiativeId
+        - name: decision
+          in: query
+          schema:
+            $ref: ./decision.schemas.yaml#/components/schemas/FundingDecisionType
+        - name: decidedByUserId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/UserId
+      responses:
+        '200':
+          description: Funding decisions
+          content:
+            application/json:
+              schema:
+                $ref: ./decision.schemas.yaml#/components/schemas/FundingDecisionListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createFundingDecision
+      tags: [Decisions]
+      summary: Record an immutable funding decision
+      description: |
+        Locks rationale, amount, decidedByUserId, and dissentNotes. Scale decisions
+        should include talentReskillNotes (BR-5, BR-10).
+      x-repository: FundingDecision
+      x-dynamodb:
+        entityType: FUNDING_DECISION
+        pkPatternTemplate: "DEC#${decisionId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: lockedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - decision.recorded
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./decision.schemas.yaml#/components/schemas/FundingDecisionCreateRequest
+      responses:
+        '201':
+          description: Decision recorded and locked
+          content:
+            application/json:
+              schema:
+                $ref: ./decision.schemas.yaml#/components/schemas/FundingDecisionResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/decisions/{decisionId}:
+    get:
+      operationId: getFundingDecision
+      tags: [Decisions]
+      summary: Get funding decision
+      x-repository: FundingDecision
+      x-dynamodb:
+        entityType: FUNDING_DECISION
+        pkPatternTemplate: "DEC#${decisionId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: lockedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: decisionId
+          in: path
+          required: true
+          schema:
+            $ref: ./decision.schemas.yaml#/components/schemas/DecisionId
+      responses:
+        '200':
+          description: Funding decision
+          content:
+            application/json:
+              schema:
+                $ref: ./decision.schemas.yaml#/components/schemas/FundingDecisionResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

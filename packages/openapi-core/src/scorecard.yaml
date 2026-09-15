@@ -1,0 +1,184 @@
+openapi: 3.1.0
+info:
+  title: Portiva Scorecards API
+  version: 0.1.0
+  description: |
+    Strategic fitness scorecards — moat, talent, vendor, policy, competitive posture (BR-2, BR-4, BR-5, BR-7).
+  x-domain: scr
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Scorecards
+    description: Strategic fitness scorecards
+x-integration-events:
+  - type: scorecard.upserted
+    domain: scorecard
+    aggregateType: Scorecard
+    description: Scorecard created or replaced for an initiative
+    defaultDeliveryMode: sync
+paths:
+  /v1/scorecards:
+    get:
+      operationId: listScorecards
+      tags: [Scorecards]
+      summary: List scorecards
+      x-repository: Scorecard
+      x-dynamodb:
+        entityType: SCORECARD
+        pkPatternTemplate: "SCR#${scorecardId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [initiativeId, competitivePosture, moatDeclaration]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: initiativeId
+          in: query
+          schema:
+            $ref: ./scorecard.schemas.yaml#/components/schemas/InitiativeId
+        - name: competitivePosture
+          in: query
+          schema:
+            $ref: ./scorecard.schemas.yaml#/components/schemas/CompetitivePosture
+        - name: moatDeclaration
+          in: query
+          schema:
+            $ref: ./scorecard.schemas.yaml#/components/schemas/MoatDeclaration
+      responses:
+        '200':
+          description: Scorecards
+          content:
+            application/json:
+              schema:
+                $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    put:
+      operationId: upsertScorecard
+      tags: [Scorecards]
+      summary: Upsert scorecard for an initiative
+      description: |
+        Creates or replaces the strategic scorecard. Fail review when moatDeclaration
+        is none without nicheLabel (BR-2). mid_tier_risk should set midTierWarning (BR-7).
+      x-repository: Scorecard
+      x-dynamodb:
+        entityType: SCORECARD
+        pkPatternTemplate: "SCR#${scorecardId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - scorecard.upserted
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardUpsertRequest
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/scorecards/{scorecardId}:
+    get:
+      operationId: getScorecard
+      tags: [Scorecards]
+      summary: Get scorecard by id
+      x-repository: Scorecard
+      x-dynamodb:
+        entityType: SCORECARD
+        pkPatternTemplate: "SCR#${scorecardId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: scorecardId
+          in: path
+          required: true
+          schema:
+            $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardId
+      responses:
+        '200':
+          description: Scorecard
+          content:
+            application/json:
+              schema:
+                $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/initiatives/{initiativeId}/scorecard:
+    get:
+      operationId: getScorecardByInitiative
+      tags: [Scorecards]
+      summary: Get scorecard for an initiative
+      x-repository: Scorecard
+      x-dynamodb:
+        entityType: SCORECARD
+        pkPatternTemplate: "INI#${initiativeId}"
+        skPatternTemplate: "SCR#CURRENT"
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: initiativeId
+          in: path
+          required: true
+          schema:
+            $ref: ./scorecard.schemas.yaml#/components/schemas/InitiativeId
+      responses:
+        '200':
+          description: Scorecard for initiative
+          content:
+            application/json:
+              schema:
+                $ref: ./scorecard.schemas.yaml#/components/schemas/ScorecardResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

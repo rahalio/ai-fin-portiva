@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: Portiva initiative schemas
+  version: 0.1.0
+  description: |
+    AI initiative inventory schemas (BR-1, BR-11). Every initiative maps to at least
+    one WEF strategic arc and a named economic buyer.
+paths: {}
+components:
+  schemas:
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Prefixed initiative identifier.
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    OverlapClusterId:
+      type: string
+      pattern: '^ovl_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Optional overlap cluster this initiative belongs to.
+      example: ovl_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    StrategicArc:
+      type: string
+      description: WEF strategic arc for institutional AI bets.
+      enum:
+        - value_creation
+        - operating_model
+        - competition
+        - public_policy
+
+    InitiativeStage:
+      type: string
+      description: Funding / maturity stage (BR-3, BR-9).
+      enum:
+        - explore
+        - pilot
+        - scale
+        - coe_service
+
+    InitiativeStatus:
+      type: string
+      enum:
+        - active
+        - paused
+        - killed
+        - scaled
+
+    Initiative:
+      type: object
+      description: Portfolio AI initiative mapped to strategic arcs and an economic buyer.
+      required:
+        - initiativeId
+        - name
+        - arcs
+        - economicBuyer
+        - ownerUserId
+        - stage
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        arcs:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/StrategicArc'
+          description: At least one WEF arc (BR-1).
+        economicBuyer:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Named economic buyer accountable for value (BR-1).
+        ownerUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        sponsorUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        stage:
+          $ref: '#/components/schemas/InitiativeStage'
+        status:
+          $ref: '#/components/schemas/InitiativeStatus'
+        outcomeMetric:
+          type: string
+          maxLength: 500
+          description: Primary customer or P&L outcome metric (used for overlap detection).
+        thesis:
+          type: string
+          maxLength: 4000
+          description: Investment thesis / strategic rationale.
+        overlapClusterId:
+          $ref: '#/components/schemas/OverlapClusterId'
+        overlapFlag:
+          type: boolean
+          description: True when initiative participates in an open overlap cluster (BR-11).
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InitiativeCreateRequest:
+      type: object
+      required:
+        - name
+        - arcs
+        - economicBuyer
+        - ownerUserId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        arcs:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/StrategicArc'
+        economicBuyer:
+          type: string
+          minLength: 1
+          maxLength: 200
+        ownerUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        sponsorUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        stage:
+          $ref: '#/components/schemas/InitiativeStage'
+          default: explore
+        outcomeMetric:
+          type: string
+          maxLength: 500
+        thesis:
+          type: string
+          maxLength: 4000
+
+    InitiativeUpdateRequest:
+      type: object
+      description: Partial update. Status transitions to killed/scaled typically via gates/decisions.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        arcs:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/StrategicArc'
+        economicBuyer:
+          type: string
+          minLength: 1
+          maxLength: 200
+        ownerUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        sponsorUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        stage:
+          $ref: '#/components/schemas/InitiativeStage'
+        status:
+          $ref: '#/components/schemas/InitiativeStatus'
+        outcomeMetric:
+          type: string
+          maxLength: 500
+        thesis:
+          type: string
+          maxLength: 4000
+        overlapClusterId:
+          $ref: '#/components/schemas/OverlapClusterId'
+
+    InitiativeResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Initiative'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    InitiativeListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Initiative'
+        nextCursor:
+          type: string
+
+    InitiativeListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/InitiativeListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

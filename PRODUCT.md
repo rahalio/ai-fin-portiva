@@ -122,7 +122,7 @@ flowchart TD
 
 ## OpenAPI skeleton
 
-Canonical HTTP surface lives in sibling [openapi.yaml](openapi.yaml). Summary:
+Canonical HTTP surface lives under [packages/openapi-core/src/](packages/openapi-core/src/) — see [OPENAPI.md](OPENAPI.md). Summary:
 
 - **Base path:** `/v1/...`
 - **Auth:** Bearer JWT for executives and PMO; `X-API-Key` for KPI ingestion.

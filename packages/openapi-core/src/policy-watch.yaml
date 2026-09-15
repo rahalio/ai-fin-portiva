@@ -1,0 +1,237 @@
+openapi: 3.1.0
+info:
+  title: Portiva Policy Watch API
+  version: 0.1.0
+  description: |
+    Policy watchlist — blockers and waivers. Open blockers beyond thresholdDays
+    block scale (BR-6).
+  x-domain: pol
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: PolicyWatch
+    description: Policy watchlist blockers and waivers
+x-codegen:
+  preserveOnClean:
+    - extensions
+  api-server:
+    extensions:
+      enabled: true
+x-integration-events:
+  - type: policy.blocker_updated
+    domain: policy-watch
+    aggregateType: PolicyWatchItem
+    description: Policy blocker opened, waived, or resolved/cleared
+    defaultDeliveryMode: sync
+paths:
+  /v1/policy-watch:
+    get:
+      operationId: listPolicyWatchItems
+      tags: [PolicyWatch]
+      summary: List policy watch items
+      x-repository: PolicyWatchItem
+      x-dynamodb:
+        entityType: POLICY_WATCH
+        pkPatternTemplate: "POL#${policyWatchId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [status, blocksScale]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: status
+          in: query
+          schema:
+            $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchStatus
+        - name: blocksScale
+          in: query
+          schema:
+            type: boolean
+        - name: initiativeId
+          in: query
+          schema:
+            $ref: ./policy-watch.schemas.yaml#/components/schemas/InitiativeId
+      responses:
+        '200':
+          description: Policy watch items
+          content:
+            application/json:
+              schema:
+                $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchItemListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createPolicyWatchItem
+      tags: [PolicyWatch]
+      summary: Create policy watch item
+      x-repository: PolicyWatchItem
+      x-dynamodb:
+        entityType: POLICY_WATCH
+        pkPatternTemplate: "POL#${policyWatchId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - policy.blocker_updated
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchCreateRequest
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchItemResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/policy-watch/{policyWatchId}:
+    get:
+      operationId: getPolicyWatchItem
+      tags: [PolicyWatch]
+      summary: Get policy watch item
+      x-repository: PolicyWatchItem
+      x-dynamodb:
+        entityType: POLICY_WATCH
+        pkPatternTemplate: "POL#${policyWatchId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: policyWatchId
+          in: path
+          required: true
+          schema:
+            $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchId
+      responses:
+        '200':
+          description: Policy watch item
+          content:
+            application/json:
+              schema:
+                $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchItemResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/policy-watch/{policyWatchId}/waive:
+    post:
+      operationId: waivePolicyWatchItem
+      tags: [PolicyWatch]
+      summary: Waive policy blocker
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - policy.blocker_updated
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: policyWatchId
+          in: path
+          required: true
+          schema:
+            $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchWaiveRequest
+      responses:
+        '200':
+          description: Waived
+          content:
+            application/json:
+              schema:
+                $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchItemResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/policy-watch/{policyWatchId}/resolve:
+    post:
+      operationId: resolvePolicyWatchItem
+      tags: [PolicyWatch]
+      summary: Resolve / clear policy blocker
+      description: Clears an open or waived blocker as resolved (BR-6).
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - policy.blocker_updated
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: policyWatchId
+          in: path
+          required: true
+          schema:
+            $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchId
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchResolveRequest
+      responses:
+        '200':
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: ./policy-watch.schemas.yaml#/components/schemas/PolicyWatchItemResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

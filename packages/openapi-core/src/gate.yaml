@@ -1,0 +1,331 @@
+openapi: 3.1.0
+info:
+  title: Portiva Gates API
+  version: 0.1.0
+  description: |
+    Stage-gate funding with pre-declared kill metrics. Pass / kill / pause / exception
+    are action-only resolutions (BR-3).
+  x-domain: gat
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Gates
+    description: Stage gates and kill-metric enforcement
+x-codegen:
+  preserveOnClean:
+    - extensions
+  api-server:
+    extensions:
+      enabled: true
+x-integration-events:
+  - type: gate.opened
+    domain: gate
+    aggregateType: StageGate
+    description: Stage gate opened with kill metrics declared
+    defaultDeliveryMode: sync
+  - type: gate.resolved
+    domain: gate
+    aggregateType: StageGate
+    description: Gate resolved via pass, kill, pause, or exception
+    defaultDeliveryMode: sync
+paths:
+  /v1/gates:
+    get:
+      operationId: listStageGates
+      tags: [Gates]
+      summary: List stage gates
+      x-repository: StageGate
+      x-dynamodb:
+        entityType: STAGE_GATE
+        pkPatternTemplate: "GAT#${gateId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [initiativeId, status, fromStage, toStage]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: initiativeId
+          in: query
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/InitiativeId
+        - name: status
+          in: query
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateStatus
+        - name: fromStage
+          in: query
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/InitiativeStage
+        - name: toStage
+          in: query
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/InitiativeStage
+      responses:
+        '200':
+          description: Stage gates
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createStageGate
+      tags: [Gates]
+      summary: Open a stage gate
+      description: killMetrics is required on create (BR-3).
+      x-repository: StageGate
+      x-dynamodb:
+        entityType: STAGE_GATE
+        pkPatternTemplate: "GAT#${gateId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - gate.opened
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./gate.schemas.yaml#/components/schemas/StageGateCreateRequest
+      responses:
+        '201':
+          description: Gate opened
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/gates/{gateId}:
+    get:
+      operationId: getStageGate
+      tags: [Gates]
+      summary: Get stage gate
+      x-repository: StageGate
+      x-dynamodb:
+        entityType: STAGE_GATE
+        pkPatternTemplate: "GAT#${gateId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      parameters:
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateId
+      responses:
+        '200':
+          description: Stage gate
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/gates/{gateId}/pass:
+    post:
+      operationId: passStageGate
+      tags: [Gates]
+      summary: Pass gate to next stage
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - gate.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateId
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./gate.schemas.yaml#/components/schemas/GatePassRequest
+      responses:
+        '200':
+          description: Gate passed
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/gates/{gateId}/kill:
+    post:
+      operationId: killStageGate
+      tags: [Gates]
+      summary: Fail gate / kill initiative path
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - gate.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateId
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./gate.schemas.yaml#/components/schemas/GateKillRequest
+      responses:
+        '200':
+          description: Gate failed / kill recorded
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/gates/{gateId}/pause:
+    post:
+      operationId: pauseStageGate
+      tags: [Gates]
+      summary: Pause open gate
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - gate.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateId
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./gate.schemas.yaml#/components/schemas/GatePauseRequest
+      responses:
+        '200':
+          description: Gate paused
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/gates/{gateId}/exception:
+    post:
+      operationId: exceptionStageGate
+      tags: [Gates]
+      summary: Executive exception for missed kill metrics
+      description: Required when kill metrics were missed but leadership elects to continue (BR-3).
+      x-repository: none
+      x-codegen:
+        api-server:
+          handler: extension
+      x-event-types:
+        - gate.resolved
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            $ref: ./gate.schemas.yaml#/components/schemas/GateId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./gate.schemas.yaml#/components/schemas/GateExceptionRequest
+      responses:
+        '200':
+          description: Exception recorded; gate advanced or reopened per policy
+          content:
+            application/json:
+              schema:
+                $ref: ./gate.schemas.yaml#/components/schemas/StageGateResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

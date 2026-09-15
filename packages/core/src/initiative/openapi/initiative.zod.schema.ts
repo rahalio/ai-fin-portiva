@@ -1,0 +1,798 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const createInitiative_Body = z
+  .object({
+    name: z.string().min(1).max(200),
+    arcs: z
+      .array(
+        z.enum([
+          'value_creation',
+          'operating_model',
+          'competition',
+          'public_policy',
+        ])
+      )
+      .min(1),
+    economicBuyer: z.string().min(1).max(200),
+    ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    sponsorUserId: z
+      .string()
+      .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    stage: z
+      .enum(['explore', 'pilot', 'scale', 'coe_service'])
+      .optional()
+      .default('explore'),
+    outcomeMetric: z.string().max(500).optional(),
+    thesis: z.string().max(4000).optional(),
+  })
+  .passthrough();
+const updateInitiative_Body = z
+  .object({
+    name: z.string().min(1).max(200),
+    arcs: z
+      .array(
+        z.enum([
+          'value_creation',
+          'operating_model',
+          'competition',
+          'public_policy',
+        ])
+      )
+      .min(1),
+    economicBuyer: z.string().min(1).max(200),
+    ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    sponsorUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+    status: z.enum(['active', 'paused', 'killed', 'scaled']),
+    outcomeMetric: z.string().max(500),
+    thesis: z.string().max(4000),
+    overlapClusterId: z.string().regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/),
+  })
+  .partial()
+  .passthrough();
+const StrategicArc = z.enum([
+  'value_creation',
+  'operating_model',
+  'competition',
+  'public_policy',
+]);
+const InitiativeStage = z.enum(['explore', 'pilot', 'scale', 'coe_service']);
+const InitiativeStatus = z.enum(['active', 'paused', 'killed', 'scaled']);
+const UserId = z.string();
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const InitiativeId = z.string();
+const OverlapClusterId = z.string();
+const Initiative = z
+  .object({
+    initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+    name: z.string().min(1).max(200),
+    arcs: z
+      .array(
+        z.enum([
+          'value_creation',
+          'operating_model',
+          'competition',
+          'public_policy',
+        ])
+      )
+      .min(1),
+    economicBuyer: z.string().min(1).max(200),
+    ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    sponsorUserId: z
+      .string()
+      .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+    status: z.enum(['active', 'paused', 'killed', 'scaled']),
+    outcomeMetric: z.string().max(500).optional(),
+    thesis: z.string().max(4000).optional(),
+    overlapClusterId: z
+      .string()
+      .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    overlapFlag: z.boolean().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const InitiativeListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+          name: z.string().min(1).max(200),
+          arcs: z
+            .array(
+              z.enum([
+                'value_creation',
+                'operating_model',
+                'competition',
+                'public_policy',
+              ])
+            )
+            .min(1),
+          economicBuyer: z.string().min(1).max(200),
+          ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+          sponsorUserId: z
+            .string()
+            .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+            .optional(),
+          stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+          status: z.enum(['active', 'paused', 'killed', 'scaled']),
+          outcomeMetric: z.string().max(500).optional(),
+          thesis: z.string().max(4000).optional(),
+          overlapClusterId: z
+            .string()
+            .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+            .optional(),
+          overlapFlag: z.boolean().optional(),
+          createdAt: z.string().datetime({ offset: true }),
+          updatedAt: z.string().datetime({ offset: true }),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const InitiativeListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+              name: z.string().min(1).max(200),
+              arcs: z
+                .array(
+                  z.enum([
+                    'value_creation',
+                    'operating_model',
+                    'competition',
+                    'public_policy',
+                  ])
+                )
+                .min(1),
+              economicBuyer: z.string().min(1).max(200),
+              ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+              sponsorUserId: z
+                .string()
+                .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+                .optional(),
+              stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+              status: z.enum(['active', 'paused', 'killed', 'scaled']),
+              outcomeMetric: z.string().max(500).optional(),
+              thesis: z.string().max(4000).optional(),
+              overlapClusterId: z
+                .string()
+                .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+                .optional(),
+              overlapFlag: z.boolean().optional(),
+              createdAt: z.string().datetime({ offset: true }),
+              updatedAt: z.string().datetime({ offset: true }),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const InitiativeCreateRequest = z
+  .object({
+    name: z.string().min(1).max(200),
+    arcs: z
+      .array(
+        z.enum([
+          'value_creation',
+          'operating_model',
+          'competition',
+          'public_policy',
+        ])
+      )
+      .min(1),
+    economicBuyer: z.string().min(1).max(200),
+    ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    sponsorUserId: z
+      .string()
+      .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+      .optional(),
+    stage: z
+      .enum(['explore', 'pilot', 'scale', 'coe_service'])
+      .optional()
+      .default('explore'),
+    outcomeMetric: z.string().max(500).optional(),
+    thesis: z.string().max(4000).optional(),
+  })
+  .passthrough();
+const InitiativeResponse = z
+  .object({
+    data: z
+      .object({
+        initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+        name: z.string().min(1).max(200),
+        arcs: z
+          .array(
+            z.enum([
+              'value_creation',
+              'operating_model',
+              'competition',
+              'public_policy',
+            ])
+          )
+          .min(1),
+        economicBuyer: z.string().min(1).max(200),
+        ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+        sponsorUserId: z
+          .string()
+          .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+        status: z.enum(['active', 'paused', 'killed', 'scaled']),
+        outcomeMetric: z.string().max(500).optional(),
+        thesis: z.string().max(4000).optional(),
+        overlapClusterId: z
+          .string()
+          .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+        overlapFlag: z.boolean().optional(),
+        createdAt: z.string().datetime({ offset: true }),
+        updatedAt: z.string().datetime({ offset: true }),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const InitiativeUpdateRequest = z
+  .object({
+    name: z.string().min(1).max(200),
+    arcs: z
+      .array(
+        z.enum([
+          'value_creation',
+          'operating_model',
+          'competition',
+          'public_policy',
+        ])
+      )
+      .min(1),
+    economicBuyer: z.string().min(1).max(200),
+    ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    sponsorUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+    status: z.enum(['active', 'paused', 'killed', 'scaled']),
+    outcomeMetric: z.string().max(500),
+    thesis: z.string().max(4000),
+    overlapClusterId: z.string().regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/),
+  })
+  .partial()
+  .passthrough();
+
+export const schemas: any = {
+  createInitiative_Body,
+  updateInitiative_Body,
+  StrategicArc,
+  InitiativeStage,
+  InitiativeStatus,
+  UserId,
+  Problem,
+  InitiativeId,
+  OverlapClusterId,
+  Initiative,
+  InitiativeListData,
+  ResponseMeta,
+  InitiativeListResponse,
+  InitiativeCreateRequest,
+  InitiativeResponse,
+  InitiativeUpdateRequest,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/initiatives',
+    alias: 'listInitiatives',
+    description: `Filter by arc, stage, status, sponsor, or overlap participation.`,
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'arc',
+        type: 'Query',
+        schema: z
+          .enum([
+            'value_creation',
+            'operating_model',
+            'competition',
+            'public_policy',
+          ])
+          .optional(),
+      },
+      {
+        name: 'stage',
+        type: 'Query',
+        schema: z.enum(['explore', 'pilot', 'scale', 'coe_service']).optional(),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z.enum(['active', 'paused', 'killed', 'scaled']).optional(),
+      },
+      {
+        name: 'sponsorUserId',
+        type: 'Query',
+        schema: z
+          .string()
+          .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+      },
+      {
+        name: 'overlapFlag',
+        type: 'Query',
+        schema: z.boolean().optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  initiativeId: z
+                    .string()
+                    .regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  name: z.string().min(1).max(200),
+                  arcs: z
+                    .array(
+                      z.enum([
+                        'value_creation',
+                        'operating_model',
+                        'competition',
+                        'public_policy',
+                      ])
+                    )
+                    .min(1),
+                  economicBuyer: z.string().min(1).max(200),
+                  ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  sponsorUserId: z
+                    .string()
+                    .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+                    .optional(),
+                  stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+                  status: z.enum(['active', 'paused', 'killed', 'scaled']),
+                  outcomeMetric: z.string().max(500).optional(),
+                  thesis: z.string().max(4000).optional(),
+                  overlapClusterId: z
+                    .string()
+                    .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+                    .optional(),
+                  overlapFlag: z.boolean().optional(),
+                  createdAt: z.string().datetime({ offset: true }),
+                  updatedAt: z.string().datetime({ offset: true }),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/initiatives',
+    alias: 'createInitiative',
+    description: `Requires at least one strategic arc and a named economic buyer (BR-1).`,
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: createInitiative_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            name: z.string().min(1).max(200),
+            arcs: z
+              .array(
+                z.enum([
+                  'value_creation',
+                  'operating_model',
+                  'competition',
+                  'public_policy',
+                ])
+              )
+              .min(1),
+            economicBuyer: z.string().min(1).max(200),
+            ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            sponsorUserId: z
+              .string()
+              .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+            status: z.enum(['active', 'paused', 'killed', 'scaled']),
+            outcomeMetric: z.string().max(500).optional(),
+            thesis: z.string().max(4000).optional(),
+            overlapClusterId: z
+              .string()
+              .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            overlapFlag: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 409,
+        description: `Idempotency key reuse with different body, or state conflict`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/initiatives/:initiativeId',
+    alias: 'getInitiative',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'initiativeId',
+        type: 'Path',
+        schema: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            name: z.string().min(1).max(200),
+            arcs: z
+              .array(
+                z.enum([
+                  'value_creation',
+                  'operating_model',
+                  'competition',
+                  'public_policy',
+                ])
+              )
+              .min(1),
+            economicBuyer: z.string().min(1).max(200),
+            ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            sponsorUserId: z
+              .string()
+              .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+            status: z.enum(['active', 'paused', 'killed', 'scaled']),
+            outcomeMetric: z.string().max(500).optional(),
+            thesis: z.string().max(4000).optional(),
+            overlapClusterId: z
+              .string()
+              .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            overlapFlag: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'patch',
+    path: '/v1/initiatives/:initiativeId',
+    alias: 'updateInitiative',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: updateInitiative_Body,
+      },
+      {
+        name: 'initiativeId',
+        type: 'Path',
+        schema: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            name: z.string().min(1).max(200),
+            arcs: z
+              .array(
+                z.enum([
+                  'value_creation',
+                  'operating_model',
+                  'competition',
+                  'public_policy',
+                ])
+              )
+              .min(1),
+            economicBuyer: z.string().min(1).max(200),
+            ownerUserId: z.string().regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            sponsorUserId: z
+              .string()
+              .regex(/^usr_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            stage: z.enum(['explore', 'pilot', 'scale', 'coe_service']),
+            status: z.enum(['active', 'paused', 'killed', 'scaled']),
+            outcomeMetric: z.string().max(500).optional(),
+            thesis: z.string().max(4000).optional(),
+            overlapClusterId: z
+              .string()
+              .regex(/^ovl_[0-9A-HJKMNP-TV-Z]{26}$/)
+              .optional(),
+            overlapFlag: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 409,
+        description: `Idempotency key reuse with different body, or state conflict`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

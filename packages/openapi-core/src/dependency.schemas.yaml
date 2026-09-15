@@ -1,0 +1,170 @@
+openapi: 3.1.0
+info:
+  title: Portiva dependency schemas
+  version: 0.1.0
+  description: |
+    Vendor / big-tech dependency records and portfolio concentration rollup (BR-4).
+paths: {}
+components:
+  schemas:
+    DependencyId:
+      type: string
+      pattern: '^dep_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: dep_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    DependencyCriticality:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+
+    VendorDependency:
+      type: object
+      required:
+        - dependencyId
+        - vendorName
+        - capability
+        - criticality
+        - initiativeId
+        - createdAt
+        - updatedAt
+      properties:
+        dependencyId:
+          $ref: '#/components/schemas/DependencyId'
+        vendorName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        capability:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Capability provided (e.g. LLM API, cloud infra, KYC).
+        criticality:
+          $ref: '#/components/schemas/DependencyCriticality'
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        mitigationNotes:
+          type: string
+          maxLength: 4000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    VendorDependencyCreateRequest:
+      type: object
+      required:
+        - vendorName
+        - capability
+        - criticality
+        - initiativeId
+      properties:
+        vendorName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        capability:
+          type: string
+          minLength: 1
+          maxLength: 200
+        criticality:
+          $ref: '#/components/schemas/DependencyCriticality'
+        initiativeId:
+          $ref: '#/components/schemas/InitiativeId'
+        mitigationNotes:
+          type: string
+          maxLength: 4000
+
+    VendorDependencyResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/VendorDependency'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    VendorDependencyListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendorDependency'
+        nextCursor:
+          type: string
+
+    VendorDependencyListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/VendorDependencyListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    VendorConcentrationItem:
+      type: object
+      required:
+        - vendorName
+        - dependencyCount
+        - highCriticalityCount
+        - initiativeIds
+      properties:
+        vendorName:
+          type: string
+        dependencyCount:
+          type: integer
+          minimum: 0
+        highCriticalityCount:
+          type: integer
+          minimum: 0
+        initiativeIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/InitiativeId'
+        capabilities:
+          type: array
+          items:
+            type: string
+
+    DependencyConcentration:
+      type: object
+      description: Portfolio-level vendor concentration rollup (BR-4).
+      required:
+        - vendors
+        - generatedAt
+      properties:
+        vendors:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendorConcentrationItem'
+        totalDependencies:
+          type: integer
+          minimum: 0
+        generatedAt:
+          type: string
+          format: date-time
+
+    DependencyConcentrationResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/DependencyConcentration'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

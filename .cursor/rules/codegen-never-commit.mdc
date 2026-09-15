@@ -1,0 +1,19 @@
+---
+description: Never commit or push .codegen to GitHub
+alwaysApply: true
+---
+
+# Codegen hygiene — `.codegen` is local-only
+
+The `.codegen/` directory (zero-codegen tool, merged config, OpenAPI examples) is **local toolchain only**.
+
+## Hard rules
+
+1. **Never** `git add` / commit / push `.codegen/` (or any path under it) to GitHub or any remote.
+2. Treat `.codegen/` as machine-local infrastructure — regenerate or copy from the scaffold when needed; do not version it in this product repo.
+3. `.gitignore` must continue to list `.codegen/` as a safeguard. Do not remove that ignore entry.
+4. If a change seems to require sharing codegen tool updates, document them outside `.codegen/` (e.g. `docs/CODEGEN.md`) rather than committing the tool tree.
+
+## Agent checklist
+
+Before finishing any git commit: confirm `git status` does **not** stage `.codegen/`.

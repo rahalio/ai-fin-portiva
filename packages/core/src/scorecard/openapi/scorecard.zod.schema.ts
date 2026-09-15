@@ -1,0 +1,536 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const InitiativeId = z.string();
+const CompetitivePosture = z.enum(['scale', 'niche', 'mid_tier_risk']);
+const MoatDeclaration = z.enum(['none', 'unique_data', 'virtuous_cycle']);
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const ScorecardId = z.string();
+const Scorecard = z
+  .object({
+    scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+    initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+    moatScore: z.number().gte(0).lte(100),
+    talentScore: z.number().gte(0).lte(100),
+    vendorRiskScore: z.number().gte(0).lte(100),
+    policyRiskScore: z.number().gte(0).lte(100),
+    competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+    moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+    nicheLabel: z.string().min(1).max(200).optional(),
+    midTierWarning: z.boolean(),
+    notes: z.string().max(4000).optional(),
+    evidenceUrls: z.array(z.string().url()).max(20).optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const ScorecardListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+          initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+          moatScore: z.number().gte(0).lte(100),
+          talentScore: z.number().gte(0).lte(100),
+          vendorRiskScore: z.number().gte(0).lte(100),
+          policyRiskScore: z.number().gte(0).lte(100),
+          competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+          moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+          nicheLabel: z.string().min(1).max(200).optional(),
+          midTierWarning: z.boolean(),
+          notes: z.string().max(4000).optional(),
+          evidenceUrls: z.array(z.string().url()).max(20).optional(),
+          createdAt: z.string().datetime({ offset: true }),
+          updatedAt: z.string().datetime({ offset: true }),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const ScorecardListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+              initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+              moatScore: z.number().gte(0).lte(100),
+              talentScore: z.number().gte(0).lte(100),
+              vendorRiskScore: z.number().gte(0).lte(100),
+              policyRiskScore: z.number().gte(0).lte(100),
+              competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+              moatDeclaration: z.enum([
+                'none',
+                'unique_data',
+                'virtuous_cycle',
+              ]),
+              nicheLabel: z.string().min(1).max(200).optional(),
+              midTierWarning: z.boolean(),
+              notes: z.string().max(4000).optional(),
+              evidenceUrls: z.array(z.string().url()).max(20).optional(),
+              createdAt: z.string().datetime({ offset: true }),
+              updatedAt: z.string().datetime({ offset: true }),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const ScorecardUpsertRequest = z.unknown();
+const ScorecardResponse = z
+  .object({
+    data: z
+      .object({
+        scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+        initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+        moatScore: z.number().gte(0).lte(100),
+        talentScore: z.number().gte(0).lte(100),
+        vendorRiskScore: z.number().gte(0).lte(100),
+        policyRiskScore: z.number().gte(0).lte(100),
+        competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+        moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+        nicheLabel: z.string().min(1).max(200).optional(),
+        midTierWarning: z.boolean(),
+        notes: z.string().max(4000).optional(),
+        evidenceUrls: z.array(z.string().url()).max(20).optional(),
+        createdAt: z.string().datetime({ offset: true }),
+        updatedAt: z.string().datetime({ offset: true }),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  InitiativeId,
+  CompetitivePosture,
+  MoatDeclaration,
+  Problem,
+  ScorecardId,
+  Scorecard,
+  ScorecardListData,
+  ResponseMeta,
+  ScorecardListResponse,
+  ScorecardUpsertRequest,
+  ScorecardResponse,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/initiatives/:initiativeId/scorecard',
+    alias: 'getScorecardByInitiative',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'initiativeId',
+        type: 'Path',
+        schema: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            moatScore: z.number().gte(0).lte(100),
+            talentScore: z.number().gte(0).lte(100),
+            vendorRiskScore: z.number().gte(0).lte(100),
+            policyRiskScore: z.number().gte(0).lte(100),
+            competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+            moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+            nicheLabel: z.string().min(1).max(200).optional(),
+            midTierWarning: z.boolean(),
+            notes: z.string().max(4000).optional(),
+            evidenceUrls: z.array(z.string().url()).max(20).optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/scorecards',
+    alias: 'listScorecards',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'initiativeId',
+        type: 'Query',
+        schema: z
+          .string()
+          .regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/)
+          .optional(),
+      },
+      {
+        name: 'competitivePosture',
+        type: 'Query',
+        schema: z.enum(['scale', 'niche', 'mid_tier_risk']).optional(),
+      },
+      {
+        name: 'moatDeclaration',
+        type: 'Query',
+        schema: z.enum(['none', 'unique_data', 'virtuous_cycle']).optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  initiativeId: z
+                    .string()
+                    .regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  moatScore: z.number().gte(0).lte(100),
+                  talentScore: z.number().gte(0).lte(100),
+                  vendorRiskScore: z.number().gte(0).lte(100),
+                  policyRiskScore: z.number().gte(0).lte(100),
+                  competitivePosture: z.enum([
+                    'scale',
+                    'niche',
+                    'mid_tier_risk',
+                  ]),
+                  moatDeclaration: z.enum([
+                    'none',
+                    'unique_data',
+                    'virtuous_cycle',
+                  ]),
+                  nicheLabel: z.string().min(1).max(200).optional(),
+                  midTierWarning: z.boolean(),
+                  notes: z.string().max(4000).optional(),
+                  evidenceUrls: z.array(z.string().url()).max(20).optional(),
+                  createdAt: z.string().datetime({ offset: true }),
+                  updatedAt: z.string().datetime({ offset: true }),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'put',
+    path: '/v1/scorecards',
+    alias: 'upsertScorecard',
+    description: `Creates or replaces the strategic scorecard. Fail review when moatDeclaration
+is none without nicheLabel (BR-2). mid_tier_risk should set midTierWarning (BR-7).
+`,
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: z.unknown(),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            moatScore: z.number().gte(0).lte(100),
+            talentScore: z.number().gte(0).lte(100),
+            vendorRiskScore: z.number().gte(0).lte(100),
+            policyRiskScore: z.number().gte(0).lte(100),
+            competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+            moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+            nicheLabel: z.string().min(1).max(200).optional(),
+            midTierWarning: z.boolean(),
+            notes: z.string().max(4000).optional(),
+            evidenceUrls: z.array(z.string().url()).max(20).optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 409,
+        description: `Idempotency key reuse with different body, or state conflict`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/scorecards/:scorecardId',
+    alias: 'getScorecard',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'scorecardId',
+        type: 'Path',
+        schema: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            scorecardId: z.string().regex(/^scr_[0-9A-HJKMNP-TV-Z]{26}$/),
+            initiativeId: z.string().regex(/^ini_[0-9A-HJKMNP-TV-Z]{26}$/),
+            moatScore: z.number().gte(0).lte(100),
+            talentScore: z.number().gte(0).lte(100),
+            vendorRiskScore: z.number().gte(0).lte(100),
+            policyRiskScore: z.number().gte(0).lte(100),
+            competitivePosture: z.enum(['scale', 'niche', 'mid_tier_risk']),
+            moatDeclaration: z.enum(['none', 'unique_data', 'virtuous_cycle']),
+            nicheLabel: z.string().min(1).max(200).optional(),
+            midTierWarning: z.boolean(),
+            notes: z.string().max(4000).optional(),
+            evidenceUrls: z.array(z.string().url()).max(20).optional(),
+            createdAt: z.string().datetime({ offset: true }),
+            updatedAt: z.string().datetime({ offset: true }),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

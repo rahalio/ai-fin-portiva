@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: Portiva board-pack schemas
+  version: 0.1.0
+  description: |
+    Unified board/exco packs — spend, expected value, risk, and stage in one deck (BR-8).
+paths: {}
+components:
+  schemas:
+    BoardPackId:
+      type: string
+      pattern: '^brd_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: brd_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    BoardPackStatus:
+      type: string
+      enum:
+        - draft
+        - published
+
+    StageDistribution:
+      type: object
+      description: Count of initiatives by stage for the pack period.
+      required:
+        - explore
+        - pilot
+        - scale
+        - coe_service
+      properties:
+        explore:
+          type: integer
+          minimum: 0
+        pilot:
+          type: integer
+          minimum: 0
+        scale:
+          type: integer
+          minimum: 0
+        coe_service:
+          type: integer
+          minimum: 0
+
+    BoardPack:
+      type: object
+      required:
+        - boardPackId
+        - period
+        - spendTotal
+        - expectedValue
+        - riskSummary
+        - stageDistribution
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        boardPackId:
+          $ref: '#/components/schemas/BoardPackId'
+        period:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Reporting period label (e.g. 2026-Q3).
+          example: 2026-Q3
+        spendTotal:
+          type: number
+          minimum: 0
+        expectedValue:
+          type: number
+        riskSummary:
+          type: string
+          minLength: 1
+          maxLength: 8000
+        stageDistribution:
+          $ref: '#/components/schemas/StageDistribution'
+        downloadUrl:
+          type: string
+          format: uri
+          description: Available after publish.
+        status:
+          $ref: '#/components/schemas/BoardPackStatus'
+        publishedAt:
+          type: string
+          format: date-time
+        killCount:
+          type: integer
+          minimum: 0
+        openPolicyBlockers:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BoardPackCreateRequest:
+      type: object
+      required:
+        - period
+        - spendTotal
+        - expectedValue
+        - riskSummary
+        - stageDistribution
+      properties:
+        period:
+          type: string
+          minLength: 1
+          maxLength: 40
+        spendTotal:
+          type: number
+          minimum: 0
+        expectedValue:
+          type: number
+        riskSummary:
+          type: string
+          minLength: 1
+          maxLength: 8000
+        stageDistribution:
+          $ref: '#/components/schemas/StageDistribution'
+        killCount:
+          type: integer
+          minimum: 0
+        openPolicyBlockers:
+          type: integer
+          minimum: 0
+
+    BoardPackResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/BoardPack'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    BoardPackListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoardPack'
+        nextCursor:
+          type: string
+
+    BoardPackListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/BoardPackListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

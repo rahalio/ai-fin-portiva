@@ -1,0 +1,202 @@
+openapi: 3.1.0
+info:
+  title: Portiva Initiatives API
+  version: 0.1.0
+  description: |
+    AI initiative inventory mapped to WEF strategic arcs with named economic buyers (BR-1).
+    Overlap flags surface double-counting of the same customer outcome (BR-11).
+  x-domain: ini
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.portiva.local
+    description: Local Portiva API
+security:
+  - apiKey: []
+  - bearerAuth: []
+tags:
+  - name: Initiatives
+    description: Portfolio AI initiative inventory
+x-integration-events:
+  - type: initiative.filed
+    domain: initiative
+    aggregateType: Initiative
+    description: New initiative filed into the portfolio inventory
+    defaultDeliveryMode: sync
+  - type: initiative.updated
+    domain: initiative
+    aggregateType: Initiative
+    description: Initiative inventory fields updated
+    defaultDeliveryMode: sync
+paths:
+  /v1/initiatives:
+    get:
+      operationId: listInitiatives
+      tags: [Initiatives]
+      summary: List initiatives
+      description: Filter by arc, stage, status, sponsor, or overlap participation.
+      x-repository: Initiative
+      x-dynamodb:
+        entityType: INITIATIVE
+        pkPatternTemplate: "INI#${initiativeId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+        filterFields: [arc, stage, status, sponsorUserId, overlapFlag]
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/Cursor
+        - $ref: ./common/parameters.yaml#/components/parameters/Limit
+        - name: arc
+          in: query
+          schema:
+            $ref: ./initiative.schemas.yaml#/components/schemas/StrategicArc
+        - name: stage
+          in: query
+          schema:
+            $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeStage
+        - name: status
+          in: query
+          schema:
+            $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeStatus
+        - name: sponsorUserId
+          in: query
+          schema:
+            $ref: ./common/primitives.yaml#/components/schemas/UserId
+        - name: overlapFlag
+          in: query
+          description: When true, only initiatives in an open overlap cluster
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Initiatives
+          content:
+            application/json:
+              schema:
+                $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createInitiative
+      tags: [Initiatives]
+      summary: File a new initiative
+      description: Requires at least one strategic arc and a named economic buyer (BR-1).
+      x-repository: Initiative
+      x-dynamodb:
+        entityType: INITIATIVE
+        pkPatternTemplate: "INI#${initiativeId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - initiative.filed
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeCreateRequest
+      responses:
+        '201':
+          description: Initiative filed
+          content:
+            application/json:
+              schema:
+                $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/initiatives/{initiativeId}:
+    parameters:
+      - name: initiativeId
+        in: path
+        required: true
+        schema:
+          $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeId
+    get:
+      operationId: getInitiative
+      tags: [Initiatives]
+      summary: Get initiative
+      x-repository: Initiative
+      x-dynamodb:
+        entityType: INITIATIVE
+        pkPatternTemplate: "INI#${initiativeId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      responses:
+        '200':
+          description: Initiative
+          content:
+            application/json:
+              schema:
+                $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    patch:
+      operationId: updateInitiative
+      tags: [Initiatives]
+      summary: Update initiative
+      x-repository: Initiative
+      x-dynamodb:
+        entityType: INITIATIVE
+        pkPatternTemplate: "INI#${initiativeId}"
+        skPatternTemplate: METADATA
+        pkPattern: entity
+        createdAtField: createdAt
+        updatedAtField: updatedAt
+        softDeleteEnabled: false
+      x-event-types:
+        - initiative.updated
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeUpdateRequest
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: ./initiative.schemas.yaml#/components/schemas/InitiativeResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '409':
+          $ref: ./common/responses.yaml#/components/responses/Conflict
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey
+    bearerAuth:
+      $ref: ./common/security.yaml#/components/securitySchemes/bearerAuth

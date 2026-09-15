@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: Portiva policy-watch schemas
+  version: 0.1.0
+  description: |
+    Policy watch items that can block scale when unresolved beyond thresholdDays (BR-6).
+paths: {}
+components:
+  schemas:
+    PolicyWatchId:
+      type: string
+      pattern: '^pol_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: pol_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    InitiativeId:
+      type: string
+      pattern: '^ini_[0-9A-HJKMNP-TV-Z]{26}$'
+      example: ini_01HZYXK8J0M0W5N6P7Q8R9S0T1U2
+
+    PolicyWatchStatus:
+      type: string
+      enum:
+        - open
+        - waived
+        - resolved
+
+    PolicyWatchItem:
+      type: object
+      required:
+        - policyWatchId
+        - topic
+        - blocksScale
+        - status
+        - thresholdDays
+        - initiativeIds
+        - createdAt
+        - updatedAt
+      properties:
+        policyWatchId:
+          $ref: '#/components/schemas/PolicyWatchId'
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: e.g. automated-advice accountability, data localisation, competition remedies.
+        blocksScale:
+          type: boolean
+          description: When true and status open beyond threshold, scale is blocked (BR-6).
+        status:
+          $ref: '#/components/schemas/PolicyWatchStatus'
+        thresholdDays:
+          type: integer
+          minimum: 1
+          description: Days an open blocker may remain before blocking scale.
+        initiativeIds:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InitiativeId'
+        openedAt:
+          type: string
+          format: date-time
+        waivedAt:
+          type: string
+          format: date-time
+        waivedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+        waiverRationale:
+          type: string
+          maxLength: 4000
+        resolvedAt:
+          type: string
+          format: date-time
+        resolutionNotes:
+          type: string
+          maxLength: 4000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PolicyWatchCreateRequest:
+      type: object
+      required:
+        - topic
+        - blocksScale
+        - thresholdDays
+        - initiativeIds
+      properties:
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 300
+        blocksScale:
+          type: boolean
+        thresholdDays:
+          type: integer
+          minimum: 1
+        initiativeIds:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InitiativeId'
+
+    PolicyWatchWaiveRequest:
+      type: object
+      required:
+        - rationale
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        waivedByUserId:
+          $ref: ./common/primitives.yaml#/components/schemas/UserId
+
+    PolicyWatchResolveRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          maxLength: 4000
+
+    PolicyWatchItemResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyWatchItem'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    PolicyWatchItemListData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyWatchItem'
+        nextCursor:
+          type: string
+
+    PolicyWatchItemListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyWatchItemListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
